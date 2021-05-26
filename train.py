@@ -24,7 +24,7 @@ tfeat = tfeat_model.TNet()
 tfeat = tfeat.cuda()
 
 # this kind of works
-optimizer = optim.Adam(tfeat.parameters(),betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False) # change this to Adam
+optimizer = optim.Adam(tfeat.parameters(),betas=(0.9, 0.999), lr=1e-3, betas=(0., 0.999))
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
 
 seed=42
@@ -39,40 +39,6 @@ train_loader = torch.utils.data.DataLoader(train_db,
 eval_loader = torch.utils.data.DataLoader(eval_db,
                                              batch_size=1024, shuffle=False,
                                              num_workers=32)
-
-class newQuadrupletLoss(torch.nn.Module):
-    """
-    Quadruplet loss function.
-    Builds on the Triplet Loss and takes 4 data input: one anchor, one positive and two negative examples.
-    The negative examples needs not to be matching the anchor, the positive and each other.
-    """
-    def __init__(self, margin1=2.0, margin2=1.0,gamma=0.8,ramda=0.8,t1=0.1,t2=0.01):
-        super(newQuadrupletLoss, self).__init__()
-        self.margin1 = margin1
-        self.margin2 = margin2
-        self.gamma=gamma
-        self.ramda=ramda
-        self.t1=t1
-        self.t2=t2
-
-    def forward(self, anchor, positive, negative1, negative2):
-
-        squarred_distance_pos = (anchor - positive).pow(2).sum(1)
-        squarred_distance_neg = (anchor - negative1).pow(2).sum(1)
-        squarred_distance_neg_b = (negative1 - negative2).pow(2).sum(1)
-
-        pos_d=squarred_distance_pos/4
-        neg1_d=squarred_distance_neg/4
-        neg2_d=squarred_distance_neg_b/4
-
-        quadruplet_loss = \
-            self.gamma*(F.relu(self.margin1 + squarred_distance_pos - squarred_distance_neg)
-            + F.relu(self.margin2 + squarred_distance_pos - squarred_distance_neg_b))\
-            + self.ramda*((F.relu(pos_d)-neg1_d+self.t1)+(F.relu(pos_d)-neg2_d+t2))\
-            + F.var(pos_d)+F.var(neg1_d)+F.var(neg2_d)
-
-        return quadruplet_loss.mean()
-
 fpr_per_epoch = []
 
 for e in range(300):
@@ -83,7 +49,10 @@ for e in range(300):
         data_n1 = data_n1.unsqueeze(1).float().cuda()
         data_n2 = data_n2.unsqueeze(1).float().cuda()
         out_a, out_p, out_n1,out_n2 = tfeat(data_a), tfeat(data_p), tfeat(data_n1), tfeat(data_n2)
-        loss = newQuadrupletLoss(out_a, out_p, out_n1,out_n2,margin1=2.0, margin2=1.0,gamma=0.8,ramda=0.8,t1=0.1,t2=0.01)
+        #pos_d,neg1_d,neg2_d=network(out_a,out_p,out_n1,out_n2)
+        hyperparameter = tfeat_model.newQuadrupletLoss(margin1=2.0, margin2=1.0,gamma=0.8,ramda=0.8,t1=0.1,t2=0.01)
+        loss=hyperparameter.loss(out_a,out_p,out_n1,out_n2)
+        #loss=hyperparameter.loss(pos_d,neg1_d,neg2_d)
 
         optimizer.zero_grad()
         loss.backward()
