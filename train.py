@@ -19,15 +19,15 @@ nd_train = phototour.PhotoTour('.','notredame', download=True, train=True, mode 
 eval_db = phototour.PhotoTour('.','yosemite', download=True, train=False)
 # train_db = torch.utils.data.ConcatDataset((lib_train, yos_train))
 train_db = nd_train
-#train_name = 'notredame'
+train_name = 'notredame'
 #train_name = 'liberty'
 
-train_name = ['notredame','liberty','notredame']
-eval_name = ['notredame','liberty','notredame']
-
-for train in train_name : 
-    for eva in eva_name : 
-
+#train_name = ['notredame','liberty','notredame']
+#eval_name = ['notredame','liberty','notredame']
+#
+#for train in train_name : 
+#    for eva in eva_name : 
+#
 tfeat = tfeat_model.TNet()
 tfeat = tfeat.cuda()
 
@@ -63,9 +63,9 @@ for e in range(100):
         #print(data_p.shape)
         #pos_d,neg1_d,neg2_d=network(out_a,out_p,out_n1,out_n2)
         #hyperparameter = tfeat_model.Quadruplet(margin1=2.0, margin2=1.0,gamma=1, ramda=0.8,t1=0.4)
-        hyperparameter = tfeat_model.Quadruplet(margin1=2.0, margin2=1.0)
+        hyperparameter = tfeat_model.newQuadruplet(margin1=2.0, margin2=1.0,gamma=0.8,ramda=0.8,t1=0.1)
         loss=hyperparameter.loss(out_a,out_p,out_n1,out_n2)
-        #loss=hyperparameter.loss(pos_d,neg1_d,neg2_d)
+        #loss=hyperparameter.loss(pos_d,neg4_d,neg2_d)
         #print(loss)
         optimizer.zero_grad()
         loss.backward()

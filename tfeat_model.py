@@ -2,12 +2,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-def get_distance_matrix(embeddings):
-    dot_product = embeddings @ embeddings.T  # [B, B]
-    squared_norm = torch.diag(dot_product) # [B]
-    distances = squared_norm.view(1, B) - 2.0 * dot_product + squared_norm.view(B, 1)  # [B, B]
-    return torch.sqrt(nn.functional.relu(distances) + 1e-16)
-
 class TNet(nn.Module):
     """TFeat model definition
     """
@@ -15,14 +9,53 @@ class TNet(nn.Module):
         super(TNet, self).__init__()
         self.features = nn.Sequential(
             nn.InstanceNorm2d(1, affine=False),
-            nn.Conv2d(1, 32, kernel_size=7),
+#            nn.Conv2d(1, 32, kernel_size=3,padding=1),
+#            nn.BatchNorm2d(32),
+#            nn.ReLU(),
+#
+#            nn.Conv2d(32,32,kernel_size=3,padding=1),
+#            nn.BatchNorm2d(32),
+#            nn.ReLU(),
+#
+#            nn.Conv2d(32,64,kernel_size=3,stride=2,padding=1),
+#            nn.BatchNorm2d(64),
+#            nn.ReLU(),
+#
+#            nn.Conv2d(64, 64, kernel_size=3,padding=1),
+#            nn.BatchNorm2d(64),
+#            nn.ReLU(),
+#
+#            nn.Conv2d(64,128,kernel_size=3, stride=2,padding=1),
+#            nn.BatchNorm2d(128),
+#            nn.ReLU(),
+#
+#            nn.Conv2d(128,128,kernel_size=3,padding=1),
+#            nn.BatchNorm2d(128),
+#            nn.ReLU(),
+#            nn.Dropout2d(p=0.3),
+#
+#            nn.Conv2d(128,128,kernel_size=8),
+#            nn.BatchNorm2d(128)
+#
+ 
+            nn.Conv2d(1,32,kernel_size=3),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=6),
+            nn.MaxPool2d(kernel_size=2,stride=2),
+            nn.Conv2d(32,64,kernel_size=3),
+            nn.ReLU(),
+            #nn.BatchNorm2d(64),
+            #nn.MaxPool2d(kernel_size=2,stride=2),
+
+            nn.Conv2d(64,128,kernel_size=3),
+            nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=2,stride=2),
+            nn.Conv2d(128,256,kernel_size=5),
             nn.ReLU()
-        )
+            #nn.MaxPool2d(kernel_size=2,stride=2)
+
+)
         self.descr = nn.Sequential(
-            nn.Linear(64 * 8 * 8, 128),
+            nn.Linear(256*7*7,128),
             nn.BatchNorm1d(128),
             nn.ReLU()
         )
@@ -32,44 +65,7 @@ class TNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.descr(x)
         return x
-
-class Metric(nn.Module):
-
-
-    def __init__(self):
-        super(Metric, self).__init__()
-#        self.features = nn.Sequential(
-#            nn.InstanceNorm2d(1, affine=False),
-#            nn.Conv2d(1, 32, kernel_size=7),
-#            nn.ReLU(),
-#            nn.MaxPool2d(kernel_size=2, stride=2),
-#            nn.Conv2d(32, 64, kernel_size=6),
-#            nn.ReLU()
-#        )
-#        self.descr = nn.Sequential(
-#            nn.Linear(64 * 8 * 8, 128),
-#            nn.ReLU()
-#        )
-#
-    def network(self,x): 
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.descr(x)
-        return x
-
-    def forward(self,input_X) :
-        
-        size=input_x.size(0)
-        embedding=self.feautres(x)
-
-        anchor=self.network(anchor)
-        pos=self.network(pos)
-        neg1=self.network(neg1)
-        neg2=self.network(neg2)
-
-        return hard_pos_d,neg1_d,neg2_d
-
-
+    
 class Quadruplet(nn.Module):
     def __init__(self,margin1=2.0,margin2=1.0) :
         super(Quadruplet,self).__init__()
