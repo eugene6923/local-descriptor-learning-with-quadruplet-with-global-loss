@@ -6,6 +6,12 @@ import numpy as np
 import torch.nn as nn
 import math
 
+import tfeat_model
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.backends.cudnn as cudnn
+
+
 lib_train = phototour.PhotoTour('.','liberty', download=True, train=True, mode = 'Quadruwithglobal', augment = True, nsamples=409600)
 yos_train = phototour.PhotoTour('.','yosemite', download=True, train=True, mode = 'Quadruwithglobal', augment = True)
 nd_train = phototour.PhotoTour('.','notredame', download=True, train=True, mode = 'Quadruwithglobal', augment = True)
@@ -13,18 +19,20 @@ nd_train = phototour.PhotoTour('.','notredame', download=True, train=True, mode 
 eval_db = phototour.PhotoTour('.','yosemite', download=True, train=False)
 # train_db = torch.utils.data.ConcatDataset((lib_train, yos_train))
 train_db = nd_train
-train_name = 'notredame'
+#train_name = 'notredame'
+#train_name = 'liberty'
 
-import tfeat_model
-import torch.optim as optim
-import torch.nn.functional as F
-import torch.backends.cudnn as cudnn
+train_name = ['notredame','liberty','notredame']
+eval_name = ['notredame','liberty','notredame']
+
+for train in train_name : 
+    for eva in eva_name : 
 
 tfeat = tfeat_model.TNet()
 tfeat = tfeat.cuda()
 
 # this kind of works
-optimizer = optim.Adam(tfeat.parameters(),betas=(0.9, 0.999), lr=1e-3, betas=(0., 0.999))
+optimizer = optim.Adam(tfeat.parameters(), lr=1e-3, betas=(0., 0.999))
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)
 
 seed=42
@@ -38,10 +46,12 @@ train_loader = torch.utils.data.DataLoader(train_db,
 
 eval_loader = torch.utils.data.DataLoader(eval_db,
                                              batch_size=1024, shuffle=False,
+
                                              num_workers=32)
+
 fpr_per_epoch = []
 
-for e in range(300):
+for e in range(100):
     tfeat.train()
     for batch_idx, (data_a, data_p, data_n1, data_n2) in tqdm(enumerate(train_loader)):
         data_a = data_a.unsqueeze(1).float().cuda()
@@ -49,15 +59,19 @@ for e in range(300):
         data_n1 = data_n1.unsqueeze(1).float().cuda()
         data_n2 = data_n2.unsqueeze(1).float().cuda()
         out_a, out_p, out_n1,out_n2 = tfeat(data_a), tfeat(data_p), tfeat(data_n1), tfeat(data_n2)
+        #print(data_a.shape)
+        #print(data_p.shape)
         #pos_d,neg1_d,neg2_d=network(out_a,out_p,out_n1,out_n2)
-        hyperparameter = tfeat_model.newQuadrupletLoss(margin1=2.0, margin2=1.0,gamma=0.8,ramda=0.8,t1=0.1,t2=0.01)
+        #hyperparameter = tfeat_model.Quadruplet(margin1=2.0, margin2=1.0,gamma=1, ramda=0.8,t1=0.4)
+        hyperparameter = tfeat_model.Quadruplet(margin1=2.0, margin2=1.0)
         loss=hyperparameter.loss(out_a,out_p,out_n1,out_n2)
         #loss=hyperparameter.loss(pos_d,neg1_d,neg2_d)
-
+        #print(loss)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
+    
+    print(loss)
     tfeat.eval()
     l = np.empty((0,))
     d = np.empty((0,))
@@ -82,5 +96,5 @@ for e in range(300):
     print(e, fpr95)
     fpr_per_epoch.append([e, fpr95])
     scheduler.step()
-    np.savetxt('fpr.txt', np.array(fpr_per_epoch), delimiter=',')
-    torch.save(tfeat.state_dict(), train_name + '-tfeat.params')
+    np.savetxt(str(train_name)+'_quadru_fpr.txt', np.array(fpr_per_epoch), delimiter=',')
+    torch.save(tfeat.state_dict(), train_name + '-quadru.params')
