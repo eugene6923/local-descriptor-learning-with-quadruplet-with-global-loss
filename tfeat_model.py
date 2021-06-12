@@ -139,11 +139,12 @@ class newQuadruplet(nn.Module):
         if swap==True:
             #print(distance_neg)
             #print(pos_neg2)
-            a=[distance_neg-pos_neg2>0]
-            print(a)
+            a= distance_neg-pos_neg2>0
+            #print(a)
+            #print(negative1[a==True])
             copy=negative1.clone().detach()
-            negative1[a==1]=negative2[a==1]
-            negative2[a==1]=copy[a==1]
+            negative1[a==True]=negative2[a==True]
+            negative2[a==True]=copy[a==True]
 
             distance_neg=(anchor-negative2).pow(2).sum(1)
             pos_neg2=(anchor-negative1).pow(2).sum(1)
